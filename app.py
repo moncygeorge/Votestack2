@@ -5,15 +5,15 @@ app.secret_key = 'your_secret_key'  # Necessary for flash messages to work
 
 # Path to the file containing usernames
 usernames_file = 'usernames.txt'
-positions_file = 'positions.txt'
 names_file = 'names.txt'
 votes_file = 'votes.txt'
 
+# Store positions in memory (instead of positions.txt)
+positions = []  # Will store the positions that admin can modify
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     return render_template('login.html')  # Show the login form
-
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -43,20 +43,19 @@ def login():
         flash("Usernames file not found.", "danger")
         return redirect(url_for('index'))  # Redirect back to login page if file is missing
 
-
 @app.route('/vote', methods=['GET'])
 def vote():
     if 'username' not in session:
         return redirect(url_for('index'))  # Redirect to login if not logged in
 
+    if not positions:
+        flash("No positions available to vote for.", "danger")
+        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard if no positions exist
+
+    # Get the first position (you can modify this to cycle through positions if needed)
+    position = positions[0] if positions else None
+
     try:
-        # Read the positions from 'positions.txt' file (assuming only one position is displayed at a time)
-        with open(positions_file, 'r') as file:
-            positions = file.read().splitlines()
-
-        # Get the first position (you can modify this to cycle through positions if needed)
-        position = positions[0] if positions else None
-
         # Read the names from 'names.txt'
         with open(names_file, 'r') as file:
             names = file.read().splitlines()
@@ -64,9 +63,8 @@ def vote():
         return render_template('vote.html', position=position, names=names)  # Pass position and names to template
 
     except FileNotFoundError:
-        flash("Positions or Names file not found.", "danger")
+        flash("Names file not found.", "danger")
         return redirect(url_for('index'))  # Redirect to login if file is missing
-
 
 @app.route('/submit_vote', methods=['POST'])
 def submit_vote():
@@ -91,7 +89,6 @@ def submit_vote():
         flash(f"An error occurred: {str(e)}", "danger")
         return redirect(url_for('vote'))  # Redirect back to voting page if any error occurs
 
-
 @app.route('/admin_dashboard', methods=['GET'])
 def admin_dashboard():
     if 'username' not in session or session['username'] != 'admin':
@@ -99,7 +96,6 @@ def admin_dashboard():
         return redirect(url_for('index'))  # Redirect if the user is not admin
 
     return render_template('admin_dashboard.html')  # Show the dashboard for admin with the Generate Tally button
-
 
 @app.route('/generate_tally', methods=['POST'])
 def generate_tally():
@@ -126,6 +122,22 @@ def generate_tally():
         flash("Votes file not found.", "danger")
         return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard if votes file is missing
 
+@app.route('/update_position', methods=['POST'])
+def update_position():
+    if 'username' not in session or session['username'] != 'admin':
+        flash("Access restricted to admin only.", "danger")
+        return redirect(url_for('index'))  # Ensure only admin can access this route
+
+    new_position = request.form.get('new_position')
+
+    if not new_position:
+        flash("Position cannot be empty.", "danger")
+        return redirect(url_for('admin_dashboard'))  # Redirect back to the dashboard if no position is entered
+
+    positions.append(new_position)  # Add the new position to the in-memory list
+
+    flash(f"The position '{new_position}' has been added successfully!", "success")
+    return redirect(url_for('admin_dashboard'))  # Redirect back to the admin dashboard
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
