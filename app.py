@@ -77,10 +77,21 @@ def submit_vote():
         flash("Please select a name to vote for.", "danger")
         return redirect(url_for('vote'))  # Redirect back to the voting page if no name is selected
 
+    username = session['username']
+
     try:
-        # Save the vote (this is a simple tally stored in a file)
+        # Check if the user has already voted by reading the votes file
+        with open(votes_file, 'r') as file:
+            votes = file.read().splitlines()
+
+        # If the user has already voted, notify them
+        if any(vote.startswith(username + ':') for vote in votes):
+            flash(f"You have already voted, {username}. You can only vote once per position.", "danger")
+            return redirect(url_for('vote'))  # Redirect back to voting page if they have already voted
+
+        # Save the vote with the username (e.g., 'username: name')
         with open(votes_file, 'a') as file:
-            file.write(name + '\n')  # Append the voted name to 'votes.txt'
+            file.write(f"{username}:{name}\n")  # Store username and vote in the file
 
         flash(f"Your vote for {name} has been recorded!", "success")
         return redirect(url_for('vote'))  # Stay on the voting page after voting
