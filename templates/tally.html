@@ -1,0 +1,20 @@
+<!-- tally.html -->
+<h1>Vote Tally</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Votes</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for name, votes in tally.items() %}
+        <tr>
+            <td>{{ name }}</td>
+            <td>{{ votes }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
