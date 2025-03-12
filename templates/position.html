@@ -1,40 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Position - {{ username }}</title>
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <style>
+        body {
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            transform: scale(0.98);
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: scale(1);
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 500;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        select,
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background-color: #f1f3f8;
+            color: #333;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+        }
+
+        select:focus,
+        button:focus {
+            outline: none;
+            border-color: #4e73df;
+            background-color: #e0e7ff;
+        }
+
+        button {
+            background-color: #4e73df;
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2e59d9;
+        }
+
+        ul {
+            margin-top: 20px;
+            list-style: none;
+            padding: 0;
+        }
+
+        .flash-message {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .flash-message.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .flash-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .flash-message.warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+    </style>
 </head>
+
 <body>
-    <h2>Hello, {{ username }}! Please select a position to vote for:</h2>
-    <form action="{{ url_for('position', username=username) }}" method="POST">
-        <label for="position">Position:</label>
-        <select name="position" id="position" required>
-            <option value="">Select Position</option>
-            {% for position in positions %}
-                <option value="{{ position }}">{{ position }}</option>
-            {% endfor %}
-        </select>
-
-        <label for="name">Name:</label>
-        <select name="name" id="name" required>
-            <option value="">Select Name</option>
-            {% for name in get_names_for_position(positions[0]) %}
-                <option value="{{ name }}">{{ name }}</option>
-            {% endfor %}
-        </select>
-
-        <button type="submit">Vote</button>
-    </form>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
+    <div class="container">
+        <h2>Hello, {{ username }}! Please select a position to vote for:</h2>
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
         <ul>
-        {% for category, message in messages %}
-            <li class="{{ category }}">{{ message }}</li>
-        {% endfor %}
+            {% for category, message in messages %}
+            <li class="flash-message {{ category }}">{{ message }}</li>
+            {% endfor %}
         </ul>
-    {% endif %}
-    {% endwith %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Voting Form -->
+        <form action="{{ url_for('position', username=username) }}" method="POST">
+            <div class="form-group">
+                <label for="position">Position:</label>
+                <select name="position" id="position" required>
+                    <option value="">Select Position</option>
+                    {% for position in positions %}
+                    <option value="{{ position }}">{{ position }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <select name="name" id="name" required>
+                    <option value="">Select Name</option>
+                    {% for name in get_names_for_position(positions[0]) %}
+                    <option value="{{ name }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit">Vote</button>
+        </form>
+    </div>
+
+    <!-- Bootstrap 5 JS and Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
 </body>
+
 </html>
+
