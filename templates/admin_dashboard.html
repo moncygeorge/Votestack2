@@ -1,5 +1,47 @@
-<!-- admin_dashboard.html -->
-<h1>Admin Dashboard</h1>
-<form action="{{ url_for('generate_tally') }}" method="post">
-    <button type="submit">Generate Tally</button>
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script>
+        // Show the input box when the "Update Position" button is clicked
+        function showPositionInput() {
+            document.getElementById('position-input').classList.remove('hidden');
+        }
+    </script>
+</head>
+<body>
+
+    <h1>Admin Dashboard</h1>
+    <div>
+        <form action="{{ url_for('generate_tally') }}" method="POST">
+            <button type="submit">Generate Tally</button>
+        </form>
+
+        <!-- Update Position Button -->
+        <button onclick="showPositionInput()">Update Position</button>
+
+        <!-- Textbox to enter position, initially hidden -->
+        <div id="position-input" class="hidden">
+            <form action="{{ url_for('update_position') }}" method="POST">
+                <label for="new_position">Enter New Position:</label>
+                <input type="text" id="new_position" name="new_position" required>
+                <button type="submit">Submit Position</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul>
+                {% for category, message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+</body>
+</html>
