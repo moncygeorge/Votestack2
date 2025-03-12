@@ -134,10 +134,13 @@ def update_position():
         flash("Position cannot be empty.", "danger")
         return redirect(url_for('admin_dashboard'))  # Redirect back to the dashboard if no position is entered
 
+    # Clear the existing positions and add the new position
+    positions.clear()  # Clear any previous positions
     positions.append(new_position)  # Add the new position to the in-memory list
 
-    flash(f"The position '{new_position}' has been added successfully!", "success")
+    flash(f"The position has been updated to '{new_position}' successfully!", "success")
     return redirect(url_for('admin_dashboard'))  # Redirect back to the admin dashboard
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
