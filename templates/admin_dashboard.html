@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <script>
-        // Show the input box when the "Update Position" button is clicked
-        function showPositionInput() {
-            document.getElementById('position-input').classList.remove('hidden');
+        // Show the input box when the "Update Topic" button is clicked
+        function showTopicInput() {
+            document.getElementById('topic-input').classList.remove('hidden');
         }
     </script>
 </head>
@@ -19,15 +19,15 @@
             <button type="submit">Generate Tally</button>
         </form>
 
-        <!-- Update Position Button -->
-        <button onclick="showPositionInput()">Update Position</button>
+        <!-- Update Topic Button -->
+        <button onclick="showTopicInput()">Update Topic</button>
 
-        <!-- Textbox to enter position, initially hidden -->
-        <div id="position-input" class="hidden">
-            <form action="{{ url_for('update_position') }}" method="POST">
-                <label for="new_position">Enter New Position:</label>
-                <input type="text" id="new_position" name="new_position" required>
-                <button type="submit">Submit Position</button>
+        <!-- Textbox to enter topic, initially hidden -->
+        <div id="topic-input" class="hidden">
+            <form action="{{ url_for('update_topic') }}" method="POST">
+                <label for="new_topic">Enter New Topic:</label>
+                <input type="text" id="new_topic" name="new_topic" required>
+                <button type="submit">Submit Topic</button>
             </form>
         </div>
     </div>
@@ -45,3 +45,4 @@
 
 </body>
 </html>
+
