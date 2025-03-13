@@ -5,7 +5,7 @@ app.secret_key = 'your_secret_key'  # Necessary for flash messages to work
 
 # Path to the file containing usernames
 usernames_file = 'usernames.txt'
-names_file = 'names.txt'
+names_file = 'choices.txt'
 votes_file = 'votes.txt'
 
 # Store topics in memory (instead of positions.txt)
@@ -56,7 +56,7 @@ def vote():
     topic = topics[0] if topics else None
 
     try:
-        # Read the names from 'names.txt'
+        # Read the names from 'choices.txt'
         with open(names_file, 'r') as file:
             names = file.read().splitlines()
 
