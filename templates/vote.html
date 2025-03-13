@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vote for Position</title>
+    <title>Vote for Topic</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <!-- Custom Styles -->
@@ -120,8 +120,8 @@
 <body>
 
     <div class="container">
-        <h1>Vote for Position</h1>
-        <h2>Position: {{ position }}</h2>
+        <h1>Vote for Topic</h1>
+        <h2>Topic: {{ topic }}</h2> <!-- Updated from "Position" to "Topic" -->
 
         <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -148,4 +148,5 @@
 </body>
 
 </html>
+
 
