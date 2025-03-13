@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <script>
-        // Show the input box when the "Update Topic" button is clicked
-        function showTopicInput() {
-            document.getElementById('topic-input').classList.remove('hidden');
+        // Show the input box when the "Enter Voters" button is clicked
+        function showVoterInput() {
+            document.getElementById('voter-input').classList.remove('hidden');
         }
     </script>
 </head>
@@ -20,14 +20,26 @@
         </form>
 
         <!-- Update Topic Button -->
-        <button onclick="showTopicInput()">Update Topic</button>
+        <button onclick="showPositionInput()">Update Topic</button>
 
         <!-- Textbox to enter topic, initially hidden -->
-        <div id="topic-input" class="hidden">
+        <div id="position-input" class="hidden">
             <form action="{{ url_for('update_topic') }}" method="POST">
                 <label for="new_topic">Enter New Topic:</label>
                 <input type="text" id="new_topic" name="new_topic" required>
                 <button type="submit">Submit Topic</button>
+            </form>
+        </div>
+
+        <!-- Enter Voters Button -->
+        <button onclick="showVoterInput()">Enter Number of Voters</button>
+
+        <!-- Input box for entering number of voters -->
+        <div id="voter-input" class="hidden">
+            <form action="{{ url_for('enter_voters') }}" method="POST">
+                <label for="num_voters">Enter Number of Voters:</label>
+                <input type="number" id="num_voters" name="num_voters" required min="1">
+                <button type="submit">Generate Voters</button>
             </form>
         </div>
     </div>
@@ -45,4 +57,5 @@
 
 </body>
 </html>
+
 
