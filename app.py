@@ -8,6 +8,8 @@ app.secret_key = 'your_secret_key'  # Necessary for flash messages to work
 usernames_file = 'usernames.txt'
 names_file = 'choices.txt'
 votes_file = 'votes.txt'
+# Store topics in memory (or it could be a file if persistence is needed)
+current_topic = None  # Track the current topic for voting
 
 # Store topics in memory (instead of positions.txt)
 topics = []  # Will store the topics that admin can modify
@@ -84,20 +86,29 @@ def submit_vote():
     username = session['username']
 
     try:
-        # Check if the user has already voted by reading the votes file
+        # Check if the user has already voted for the current topic by reading the votes file
         with open(votes_file, 'r') as file:
             votes = file.read().splitlines()
 
-        # If the user has already voted, notify them
-        if any(vote.startswith(username + ':') for vote in votes):
-            flash(f"You have already voted, {username}. You can only vote once per topic.", "danger")
+        # Find the current topic to check if the user has voted for it
+        global current_topic  # Use the global variable that tracks the current topic
+
+        if current_topic is None:
+            flash("No active topic available.", "danger")
+            return redirect(url_for('vote'))  # Ensure there's a topic to vote for
+
+        # If the user has already voted for the current topic, notify them
+        if any(vote.startswith(username + f":{current_topic}:") for vote in votes):
+            flash(
+                f"You have already voted for the topic '{current_topic}', {username}. You can only vote once per topic.",
+                "danger")
             return redirect(url_for('vote'))  # Redirect back to voting page if they have already voted
 
-        # Save the vote with the username (e.g., 'username: name')
+        # Save the vote with the username and current topic (e.g., 'username: current_topic: name')
         with open(votes_file, 'a') as file:
-            file.write(f"{username}:{name}\n")  # Store username and vote in the file
+            file.write(f"{username}:{current_topic}:{name}\n")  # Store username, topic, and vote
 
-        flash(f"Your vote for {name} has been recorded!", "success")
+        flash(f"Your vote for {name} has been recorded for topic '{current_topic}'!", "success")
         return redirect(url_for('vote'))  # Stay on the voting page after voting
 
     except Exception as e:
@@ -203,12 +214,12 @@ def update_topic():
         flash("Topic cannot be empty.", "danger")
         return redirect(url_for('admin_dashboard'))  # Redirect back to the dashboard if no topic is entered
 
-    # Clear the existing topics and add the new topic
-    topics.clear()  # Clear any previous topics
-    topics.append(new_topic)  # Add the new topic to the in-memory list
+    global current_topic
+    current_topic = new_topic  # Set the new current topic
 
     flash(f"The topic has been updated to '{new_topic}' successfully!", "success")
     return redirect(url_for('admin_dashboard'))  # Redirect back to the admin dashboard
+
 
 @app.route('/view_usernames')
 def view_usernames():
