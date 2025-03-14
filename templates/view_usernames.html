@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Usernames</title>
+</head>
+<body>
+
+    <h1>Usernames List</h1>
+    <ul>
+        {% for username in usernames %}
+            <li>{{ username }}</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Button to return to admin dashboard -->
+    <a href="{{ url_for('admin_dashboard') }}">Back to Admin Dashboard</a>
+
+</body>
+</html>
+

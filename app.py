@@ -166,13 +166,11 @@ def enter_voters():
         flash("Access restricted to admin only.", "danger")
         return redirect(url_for('index'))  # Ensure only admin can access this route
 
-    # Get the number of voters from the form
-    num_voters = request.form.get('num_voters')
+    num_voters = request.form.get('num_voters')  # Get the number of voters from the form
 
-    # Check if the number of voters is valid
     if not num_voters or not num_voters.isdigit() or int(num_voters) <= 0:
         flash("Please enter a valid number of voters.", "danger")
-        return redirect(url_for('admin_dashboard'))  # Redirect to the admin dashboard if input is invalid
+        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard if invalid number
 
     num_voters = int(num_voters)
 
@@ -180,16 +178,18 @@ def enter_voters():
     generated_usernames = [str(random.randint(1000, 9999)) for _ in range(num_voters)]
 
     try:
-        # Append the generated usernames to 'usernames.txt'
-        with open(usernames_file, 'a') as file:
+        # Overwrite the 'usernames.txt' file with the new generated usernames
+        with open(usernames_file, 'w') as file:  # 'w' mode overwrites the file
             for username in generated_usernames:
                 file.write(f"{username}\n")
 
-        flash(f"{num_voters} new voters have been added successfully.", "success")
+        flash(f"{num_voters} new voters have been added.", "success")
+        return redirect(url_for('admin_dashboard'))  # Redirect back to admin dashboard
+
     except Exception as e:
         flash(f"An error occurred while updating usernames: {str(e)}", "danger")
+        return redirect(url_for('admin_dashboard'))  # Redirect back to admin dashboard if an error occurs
 
-    return redirect(url_for('admin_dashboard'))  # Redirect back to admin dashboard
 
 @app.route('/update_topic', methods=['POST'])
 def update_topic():
@@ -210,6 +210,22 @@ def update_topic():
     flash(f"The topic has been updated to '{new_topic}' successfully!", "success")
     return redirect(url_for('admin_dashboard'))  # Redirect back to the admin dashboard
 
+@app.route('/view_usernames')
+def view_usernames():
+    if 'username' not in session or session['username'] != 'admin':
+        flash("Access restricted to admin only.", "danger")
+        return redirect(url_for('index'))  # Redirect if the user is not admin
+
+    try:
+        # Read the usernames from the 'usernames.txt' file
+        with open(usernames_file, 'r') as file:
+            usernames = file.read().splitlines()
+
+        return render_template('view_usernames.html', usernames=usernames)  # Pass usernames to template
+
+    except FileNotFoundError:
+        flash("Usernames file not found.", "danger")
+        return redirect(url_for('admin_dashboard'))  # Redirect back to admin dashboard if the file is missing
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
