@@ -30,6 +30,8 @@
             width: 100%;
             max-width: 900px;
             text-align: center;
+            overflow-y: auto;
+            max-height: 90vh; /* Ensure it doesn't take up the whole screen */
         }
 
         h1 {
@@ -72,6 +74,16 @@
 
         .table-container {
             overflow-x: auto;
+            max-height: 400px; /* Makes table scrollable */
+            overflow-y: auto;
+        }
+
+        .topic-heading {
+            margin-top: 30px;
+            font-size: 1.8rem;
+            font-weight: 500;
+            color: #333;
+            text-align: left;
         }
 
         /* Flash Message Styling */
@@ -109,22 +121,29 @@
 
         <!-- Table with Vote Tally -->
         <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Votes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for name, votes in tally.items() %}
-                    <tr>
-                        <td>{{ name }}</td>
-                        <td>{{ votes }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            {% for topic, choices in tally.items() %}
+                <!-- Topic heading -->
+                <div class="topic-heading">{{ topic }}</div>
+
+                <!-- Table displaying choices and vote counts for the topic -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Choice</th>
+                            <th>Votes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for name, votes in choices.items() %}
+                            <tr>
+                                <td>{{ name }}</td>
+                                <td>{{ votes }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <hr>
+            {% endfor %}
         </div>
     </div>
 
@@ -134,6 +153,3 @@
 </body>
 
 </html>
-
-
-
