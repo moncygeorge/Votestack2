@@ -430,7 +430,24 @@ def view_usernames():
     except FileNotFoundError:
         flash("Usernames file not found.", "danger")
         return redirect(url_for('admin_dashboard'))  # Redirect back to admin dashboard if the file is missing
+@app.route('/delete_all_voters', methods=['POST'])
+def delete_all_voters():
+    if 'username' not in session or session['username'] != 'admin':
+        flash("Access restricted to admin only.", "danger")
+        return redirect(url_for('index'))  # Ensure only admin can access this route
 
+    try:
+        # Clear the usernames list by overwriting the file with an empty list
+        with open(usernames_file, 'w') as file:
+            file.write("")  # Overwrite the file with nothing
+
+        flash("All voters have been deleted.", "success")
+    except FileNotFoundError:
+        flash("Usernames file not found.", "danger")
+    except Exception as e:
+        flash(f"An error occurred: {str(e)}", "danger")
+
+    return redirect(url_for('view_usernames'))  # Redirect back to the view_usernames
 @app.route('/delete_voter/<username>', methods=['POST'])
 def delete_voter(username):
     if 'username' not in session or session['username'] != 'admin':

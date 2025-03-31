@@ -2,6 +2,13 @@
 
 {% block content %}
   <h1>View and Delete Voters</h1>
+
+  <!-- Delete All Form -->
+  <form action="{{ url_for('delete_all_voters') }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete all voters?');">
+    <button type="submit" class="btn btn-danger">Delete All</button>
+  </form>
+  <br><br>
+
   {% if not usernames %}
     <p>No users found.</p>
   {% else %}
@@ -16,5 +23,6 @@
       {% endfor %}
     </ul>
   {% endif %}
+
   <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
 {% endblock %}
