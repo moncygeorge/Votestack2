@@ -76,6 +76,11 @@
         .form-control {
             border-radius: 10px;
         }
+                /* Custom Styles for Textarea */
+        #choices-input textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
     </style>
 </head>
 
@@ -106,7 +111,12 @@
                         <button type="submit" class="btn btn-primary btn-lg w-100">Generate Tally</button>
                     </form>
                 </div>
-
+                <!-- View Topic Button -->
+                <div class="mb-3">
+                    <form action="{{ url_for('view_topic') }}" method="GET">
+                        <button type="submit" class="btn btn-secondary w-100">View Topic</button>
+                    </form>
+                </div>
                 <!-- Update Topic Section -->
                 <div class="mb-3">
                     <button class="btn btn-secondary w-100" onclick="showPositionInput()">Update Topic</button>
@@ -118,7 +128,23 @@
                         </form>
                     </div>
                 </div>
-
+                <!-- View Choices Button -->
+                <div class="mb-3">
+                    <form action="{{ url_for('view_choices') }}" method="GET">
+                        <button type="submit" class="btn btn-secondary w-100">View Choices</button>
+                    </form>
+                </div>
+                <!-- Update Choices Section -->
+                <div class="mb-3">
+                    <button class="btn btn-secondary w-100" onclick="showChoiceInput()">Update Choices</button>
+                    <div id="choices-input" class="hidden mt-3">
+                        <form action="{{ url_for('update_choices') }}" method="POST">
+                            <label for="choices" class="form-label">Enter Voting Choices (one per line):</label>
+                            <textarea id="choices" name="choices" class="form-control" rows="5" required></textarea>
+                            <button type="submit" class="btn btn-primary mt-3 w-100">Submit Choices</button>
+                        </form>
+                    </div>
+                </div>
                 <!-- Enter Voters Section -->
                 <div class="mb-3">
                     <button class="btn btn-secondary w-100" onclick="showVoterInput()">Enter Number of Voters</button>
@@ -153,6 +179,11 @@
         // Function to show the voters input field
         function showVoterInput() {
             document.getElementById('voter-input').classList.toggle('hidden');
+        }
+                // Function to show the choices input field
+        function showChoiceInput() {
+            var choicesInput = document.getElementById('choices-input');
+            choicesInput.classList.toggle('hidden'); // This will show or hide the input
         }
     </script>
 

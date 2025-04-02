@@ -127,7 +127,18 @@ def submit_vote():
 def get_current_topic_api():
     """API endpoint to get the current topic."""
     return jsonify({"topic": current_topic}), 200
+@app.route('/view_topic', methods=['GET'])
+def view_topic():
+    if 'username' not in session or session['username'] != 'admin':
+        flash("Access restricted to admin only.", "danger")
+        return redirect(url_for('index'))  # Ensure only admin can access this route
 
+    # If a topic exists, pass it to the template, otherwise show a message
+    if current_topic:
+        return render_template('view_topic.html', topic=current_topic)
+    else:
+        flash("No topic has been set.", "warning")
+        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard
 @app.route('/api/submit_vote', methods=['POST'])
 def submit_vote_api():
     """API endpoint for submitting votes."""
@@ -159,7 +170,46 @@ def submit_vote_api():
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+# Route to view the current choices
+@app.route('/view_choices', methods=['GET'])
+def view_choices():
+    if 'username' not in session or session['username'] != 'admin':
+        flash("Access restricted to admin only.", "danger")
+        return redirect(url_for('index'))  # Ensure only admin can access this route
 
+    try:
+        # Read the choices from the 'choices.txt' file
+        with open(names_file, 'r') as file:
+            choices = file.read().splitlines()
+
+        if not choices:
+            flash("No choices available.", "warning")  # Show a message if no choices are available
+
+        return render_template('view_choices.html', choices=choices)  # Pass choices to template
+
+    except FileNotFoundError:
+        flash("Choices file not found.", "danger")
+        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard if file is missing
+
+# Route to update the choices (allow admin to input new choices)
+@app.route('/update_choices', methods=['POST'])
+def update_choices():
+    global choices
+    if request.method == 'POST':
+        # Get the choices from the form, split by new lines
+        new_choices = request.form.get('choices').splitlines()
+
+        # Update the existing choices with the new ones
+        choices = new_choices
+
+        # Save the updated choices to a file (or database)
+        with open('choices.txt', 'w') as file:
+            # Convert the list to a single string with each choice on a new line
+            file.write("\n".join(new_choices))
+
+        # Flash a success message
+        flash("Choices have been updated successfully!", category='success')
+        return redirect(url_for('admin_dashboard'))
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
 def admin_dashboard():
     if 'username' not in session or session['username'] != 'admin':
