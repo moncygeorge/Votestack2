@@ -31,7 +31,7 @@
             max-width: 900px;
             text-align: center;
             overflow-y: auto;
-            max-height: 90vh; /* Ensure it doesn't take up the whole screen */
+            max-height: 90vh;
         }
 
         h1 {
@@ -58,8 +58,6 @@
             background-color: #4e73df;
             color: white;
             font-weight: 600;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
         }
 
         td {
@@ -72,18 +70,12 @@
             background-color: #f1f3f8;
         }
 
-        .table-container {
-            overflow-x: auto;
-            max-height: 400px; /* Makes table scrollable */
-            overflow-y: auto;
-        }
-
         .topic-heading {
             margin-top: 30px;
-            font-size: 1.8rem;
-            font-weight: 500;
+            font-size: 2rem;
+            font-weight: 600;
             color: #333;
-            text-align: left;
+            text-align: center;
         }
 
         /* Flash Message Styling */
@@ -119,32 +111,29 @@
         {% endif %}
         {% endwith %}
 
-        <!-- Table with Vote Tally -->
-        <div class="table-container">
-            {% for topic, choices in tally.items() %}
-                <!-- Topic heading -->
-                <div class="topic-heading">{{ topic }}</div>
+        <!-- Loop through the topics in the tally dictionary -->
+        {% for topic, choices in tally.items() %}
+            <div class="topic-heading">
+                <h2>{{ topic }}</h2>
+            </div>
 
-                <!-- Table displaying choices and vote counts for the topic -->
-                <table>
-                    <thead>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Choice</th>
+                        <th>Votes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for choice, votes in choices.items() %}
                         <tr>
-                            <th>Choice</th>
-                            <th>Votes</th>
+                            <td>{{ choice }}</td>
+                            <td>{{ votes }}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {% for name, votes in choices.items() %}
-                            <tr>
-                                <td>{{ name }}</td>
-                                <td>{{ votes }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <hr>
-            {% endfor %}
-        </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
     </div>
 
     <!-- Bootstrap 5 JS and Popper.js -->

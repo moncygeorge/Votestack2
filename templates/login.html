@@ -91,26 +91,6 @@
             font-size: 14px;
             border-radius: 8px;
         }
-
-        /* Flash Message Styling */
-        .flash-message {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 8px;
-            background-color: #f8d7da;
-            color: #721c24;
-            text-align: center;
-        }
-
-        .flash-message.success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .flash-message.warning {
-            background-color: #fff3cd;
-            color: #856404;
-        }
     </style>
 </head>
 
@@ -118,17 +98,6 @@
 
     <div class="login-container">
         <h2>Login</h2>
-
-        <!-- Flash messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="flash-message {{ category }}">
-                {% for category, message in messages %}
-                    <p>{{ message }}</p>
-                {% endfor %}
-            </div>
-        {% endif %}
-        {% endwith %}
 
         <!-- Login Form -->
         <form action="{{ url_for('login') }}" method="POST">
@@ -143,17 +112,17 @@
     <!-- Bootstrap 5 JS and Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
-<script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/sw.js')
-            .then((registration) => {
-                console.log('Service Worker registered with scope:', registration.scope);
-            })
-            .catch((error) => {
-                console.error('Service Worker registration failed:', error);
-            });
-    }
-</script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then((registration) => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch((error) => {
+                    console.error('Service Worker registration failed:', error);
+                });
+        }
+    </script>
 </body>
 
 </html>

@@ -49,22 +49,6 @@
             color: white;
         }
 
-        .flash-message {
-            margin-bottom: 20px;
-        }
-
-        .flash-message ul {
-            padding-left: 0;
-            list-style: none;
-        }
-
-        .flash-message ul li {
-            padding: 10px;
-            background-color: #f8d7da;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
         .hidden {
             display: none;
         }
@@ -76,7 +60,8 @@
         .form-control {
             border-radius: 10px;
         }
-                /* Custom Styles for Textarea */
+
+        /* Custom Styles for Textarea */
         #choices-input textarea {
             resize: vertical;
             min-height: 100px;
@@ -92,32 +77,14 @@
                 Admin Dashboard
             </div>
             <div class="card-body">
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                    <div class="flash-message">
-                        <ul>
-                            {% for category, message in messages %}
-                            <li>{{ message }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-                {% endwith %}
-
                 <!-- Generate Tally Form -->
                 <div class="mb-3">
                     <form action="{{ url_for('generate_tally') }}" method="POST">
                         <button type="submit" class="btn btn-primary btn-lg w-100">Generate Tally</button>
                     </form>
                 </div>
-                <!-- View Topic Button -->
-                <div class="mb-3">
-                    <form action="{{ url_for('view_topic') }}" method="GET">
-                        <button type="submit" class="btn btn-secondary w-100">View Topic</button>
-                    </form>
-                </div>
-                <!-- Update Topic Section -->
+
+                <!-- Update Topic Form -->
                 <div class="mb-3">
                     <button class="btn btn-secondary w-100" onclick="showPositionInput()">Update Topic</button>
                     <div id="position-input" class="hidden mt-3">
@@ -128,12 +95,21 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- View Topic Button -->
+                <div class="mb-3">
+                    <form action="{{ url_for('view_topic') }}" method="GET">
+                        <button type="submit" class="btn btn-secondary w-100">View Topic</button>
+                    </form>
+                </div>
+
                 <!-- View Choices Button -->
                 <div class="mb-3">
                     <form action="{{ url_for('view_choices') }}" method="GET">
                         <button type="submit" class="btn btn-secondary w-100">View Choices</button>
                     </form>
                 </div>
+
                 <!-- Update Choices Section -->
                 <div class="mb-3">
                     <button class="btn btn-secondary w-100" onclick="showChoiceInput()">Update Choices</button>
@@ -145,6 +121,7 @@
                         </form>
                     </div>
                 </div>
+
                 <!-- Enter Voters Section -->
                 <div class="mb-3">
                     <button class="btn btn-secondary w-100" onclick="showVoterInput()">Enter Number of Voters</button>
@@ -163,8 +140,9 @@
                         <button type="submit" class="btn btn-secondary w-100">View Users</button>
                     </form>
                 </div>
+
                 <div class="mb-3">
-                <a href="{{ url_for('download_voters_pdf') }}" class="btn btn-primary w-100">Download Voters List</a>
+                    <a href="{{ url_for('download_voters_pdf') }}" class="btn btn-primary w-100">Download Voters List</a>
                 </div>
             </div>
         </div>
@@ -180,7 +158,8 @@
         function showVoterInput() {
             document.getElementById('voter-input').classList.toggle('hidden');
         }
-                // Function to show the choices input field
+
+        // Function to show the choices input field
         function showChoiceInput() {
             var choicesInput = document.getElementById('choices-input');
             choicesInput.classList.toggle('hidden'); // This will show or hide the input

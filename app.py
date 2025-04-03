@@ -14,29 +14,13 @@ ssl_key = 'ssl/server.key'
 
 # Path to the file containing usernames
 usernames_file = 'usernames.txt'
-names_file = 'choices.txt'
+choices_file = 'choices.txt'
 votes_file = 'votes.txt'
-topic_file = 'current_topic.txt'  # New file to store current topic
-
-# Load the current topic from the file when the app starts
-def load_current_topic():
-    try:
-        with open(topic_file, 'r') as file:
-            return file.read().strip()
-    except FileNotFoundError:
-        return None  # Return None if no topic file exists
-
-current_topic = load_current_topic()  # Load current topic from file on startup
-
-# Store topics in memory (instead of positions.txt)
-topics = []  # Will store the topics that admin can modify
-
-@app.route('/', methods=['GET'])
-def index():
-    return render_template('login.html')  # Show the login form
+topic_file = 'topics.txt'  # New file to store current topic
 
 @app.route('/login', methods=['POST'])
 def login():
+    session.clear()
     username = request.form.get('username')  # Get the username from the form
 
     if not username:
@@ -66,39 +50,64 @@ def login():
         flash("Usernames file not found.", "danger")
         return redirect(url_for('index'))  # Redirect back to login page if file is missing
 
-@app.route('/vote', methods=['GET'])
-def vote():
-    if 'username' not in session:
-        return redirect(url_for('index'))  # Redirect to login if not logged in
 
-    if not current_topic:
-        flash("No topics available to vote for.", "danger")
-        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard if no topics exist
-
-    # Get the current topic
-    topic = current_topic
-
+# Load the current topic from the file when the app starts
+# Load topics from file
+def load_topic():
+    global topic
     try:
-        # Read the names from 'choices.txt'
-        with open(names_file, 'r') as file:
-            names = file.read().splitlines()
+        with open('topics.txt', 'r') as file:
+            topic = file.read().strip()  # Read the single line and remove any surrounding whitespace
+    except FileNotFoundError:
+        topic = None  # Handle the case where the file doesn't exist
+@app.route('/view_topic')
+def view_topic():
+    load_topic()  # Load the current topic
+    return render_template('view_topic.html', topic=topic)
 
-        return render_template('vote.html', topic=topic, names=names)  # Pass topic and names to template
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('login.html')  # Show the login form
+
+@app.route('/vote')
+def vote():
+    try:
+        # Read the topic from the topic file
+        with open('topics.txt', 'r') as file:
+            topic = file.read().strip()
+
+        # Read the choices from another file
+        with open('choices.txt', 'r') as file:
+            choices = [line.strip() for line in file.readlines()]
 
     except FileNotFoundError:
-        flash("Names file not found.", "danger")
-        return redirect(url_for('index'))  # Redirect to login if file is missing
+        topic = None
+        choices = []
+
+    if not topic or not choices:
+        return "No topic or choices available to vote on."
+
+    return render_template('vote.html', topic=topic, choices=choices)
+
 
 @app.route('/submit_vote', methods=['POST'])
 def submit_vote():
     if 'username' not in session:
         return redirect(url_for('index'))  # Redirect to login if not logged in
 
-    name = request.form.get('name')  # Get the selected name from the form
+    # Load the current topic from the file (assuming the topic is stored in 'topics.txt')
+    try:
+        with open('topics.txt', 'r') as file:
+            topic = file.read().strip()  # Read the topic from the file
+    except FileNotFoundError:
+        flash("The topic file was not found.", "danger")
+        return redirect(url_for('vote'))  # If the file isn't found, redirect to vote page
 
-    if not name:
-        flash("Please select a name to vote for.", "danger")
-        return redirect(url_for('vote'))  # Redirect back to the voting page if no name is selected
+    choice = request.form.get('choice')  # Get the selected choice from the form
+
+    if not choice:
+        flash("Please select a choice to vote for.", "danger")
+        return redirect(url_for('vote'))  # Redirect back to the voting page if no choice is selected
 
     username = session['username']
 
@@ -108,37 +117,27 @@ def submit_vote():
             votes = file.read().splitlines()
 
         # If the user has already voted for the current topic, notify them
-        if any(vote.startswith(username + f":{current_topic}:") for vote in votes):
-            flash(f"You have already voted for the topic '{current_topic}', {username}. You can only vote once per topic.", "danger")
+        if any(vote.startswith(username + f":{topic}:") for vote in votes):
+            flash(f"You have already voted for the topic '{topic}', {username}. You can only vote once per topic.", "danger")
             return redirect(url_for('vote'))  # Redirect back to voting page if they have already voted
 
-        # Save the vote with the username and current topic (e.g., 'username: current_topic: name')
+        # Save the vote with the username and current topic (e.g., 'username: topic: choice')
         with open(votes_file, 'a') as file:
-            file.write(f"{username}:{current_topic}:{name}\n")  # Store username, topic, and vote
+            file.write(f"{username}:{topic}:{choice}\n")  # Store username, topic, and vote
 
-        flash(f"Your vote for {name} has been recorded for topic '{current_topic}'!", "success")
+        flash(f"Your vote for {choice} has been recorded for topic '{topic}'!", "success")
         return redirect(url_for('vote'))  # Stay on the voting page after voting
 
     except Exception as e:
         flash(f"An error occurred: {str(e)}", "danger")
         return redirect(url_for('vote'))  # Redirect back to voting page if any error occurs
 
-@app.route('/api/current_topic', methods=['GET'])
+
+@app.route('/api/topic', methods=['GET'])
 def get_current_topic_api():
     """API endpoint to get the current topic."""
-    return jsonify({"topic": current_topic}), 200
-@app.route('/view_topic', methods=['GET'])
-def view_topic():
-    if 'username' not in session or session['username'] != 'admin':
-        flash("Access restricted to admin only.", "danger")
-        return redirect(url_for('index'))  # Ensure only admin can access this route
+    return jsonify({"topic": topic}), 200
 
-    # If a topic exists, pass it to the template, otherwise show a message
-    if current_topic:
-        return render_template('view_topic.html', topic=current_topic)
-    else:
-        flash("No topic has been set.", "warning")
-        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard
 @app.route('/api/submit_vote', methods=['POST'])
 def submit_vote_api():
     """API endpoint for submitting votes."""
@@ -148,10 +147,10 @@ def submit_vote_api():
         return jsonify({"error": "Please log in first."}), 401
 
     username = session['username']
-    name = data.get('name')
+    choice = data.get('choice')
 
-    if not name:
-        return jsonify({"error": "Please select a name to vote for."}), 400
+    if not choice:
+        return jsonify({"error": "Please select a choice to vote for."}), 400
 
     try:
         # Check if the user has already voted for the current topic by reading the votes file
@@ -159,14 +158,14 @@ def submit_vote_api():
             votes = file.read().splitlines()
 
         # If the user has already voted for the current topic, notify them
-        if any(vote.startswith(username + f":{current_topic}:") for vote in votes):
+        if any(vote.startswith(username + f":{topic}:") for vote in votes):
             return jsonify({"error": "You have already voted."}), 400
 
-        # Save the vote with the username and current topic (e.g., 'username: current_topic: name')
+        # Save the vote with the username and current topic (e.g., 'username: topic: name')
         with open(votes_file, 'a') as file:
-            file.write(f"{username}:{current_topic}:{name}\n")  # Store username, topic, and vote
+            file.write(f"{username}:{topic}:{choice}\n")  # Store username, topic, and vote
 
-        return jsonify({"message": f"Your vote for {name} has been recorded for topic '{current_topic}'!"}), 200
+        return jsonify({"message": f"Your vote for {choice} has been recorded for topic '{topic}'!"}), 200
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
@@ -179,7 +178,7 @@ def view_choices():
 
     try:
         # Read the choices from the 'choices.txt' file
-        with open(names_file, 'r') as file:
+        with open(choices_file, 'r') as file:
             choices = file.read().splitlines()
 
         if not choices:
@@ -194,28 +193,32 @@ def view_choices():
 # Route to update the choices (allow admin to input new choices)
 @app.route('/update_choices', methods=['POST'])
 def update_choices():
-    global choices
     if request.method == 'POST':
-        # Get the choices from the form, split by new lines
-        new_choices = request.form.get('choices').splitlines()
+        # Get the choices from the form (no topic needed)
+        new_choices = request.form.get('choices').splitlines()  # Get choices from the form and split by new lines
 
-        # Update the existing choices with the new ones
-        choices = new_choices
+        # Save the new choices directly to the choices.txt file
+        try:
+            with open('choices.txt', 'w') as file:
+                # Write the new choices to the file, each on a new line
+                for choice in new_choices:
+                    file.write(f"{choice}\n")
 
-        # Save the updated choices to a file (or database)
-        with open('choices.txt', 'w') as file:
-            # Convert the list to a single string with each choice on a new line
-            file.write("\n".join(new_choices))
+            # Flash a success message
+            flash("Choices have been updated successfully!", category='success')
+        except Exception as e:
+            # In case of any error while writing to the file
+            flash(f"An error occurred while updating choices: {e}", category='danger')
 
-        # Flash a success message
-        flash("Choices have been updated successfully!", category='success')
         return redirect(url_for('admin_dashboard'))
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
 def admin_dashboard():
+    load_topic()  # Load topics
+    # Pass 'topic' to the template
+    return render_template('admin_dashboard.html', topic=topic if topic else None)
     if 'username' not in session or session['username'] != 'admin':
         flash("Access restricted to admin only.", "danger")
         return redirect(url_for('index'))  # Redirect if the user is not admin
-
     if request.method == 'POST':
         # New feature to add voters
         num_voters = request.form.get('num_voters')
@@ -239,7 +242,11 @@ def admin_dashboard():
         except Exception as e:
             flash(f"An error occurred while updating usernames: {str(e)}", "danger")
 
-    return render_template('admin_dashboard.html')  # Show the dashboard for admin
+        # Load topics and set the current topic
+        load_topic()
+
+        return render_template('admin_dashboard.html', topics=topic if topic else None)
+
 
 @app.route('/generate_tally', methods=['GET', 'POST'])
 def generate_tally():
@@ -248,11 +255,7 @@ def generate_tally():
         return redirect(url_for('index'))  # Ensure only admin can access this route
 
     try:
-        # Read the names from 'choices.txt' (the available choices)
-        with open(names_file, 'r') as file:
-            choices = file.read().splitlines()
-
-        # Initialize a dictionary to hold the tally for each topic and their choices
+        # Initialize a dictionary to hold the tally for each topic and its choices
         tally = {}
 
         # Read the votes from 'votes.txt'
@@ -262,21 +265,28 @@ def generate_tally():
         # Count the votes for each choice for each topic
         for vote in votes:
             try:
-                username, topic, name = vote.split(":")
+                username, topic, choice = vote.split(":")
                 if topic not in tally:
-                    tally[topic] = {choice: 0 for choice in choices}  # Initialize a dict for the topic
-                if name in tally[topic]:
-                    tally[topic][name] += 1
+                    # Initialize the topic if not already present
+                    tally[topic] = {}
+
+                # Initialize the choice count if not already present
+                if choice not in tally[topic]:
+                    tally[topic][choice] = 0
+
+                # Increment the vote count for this choice
+                tally[topic][choice] += 1
+
             except ValueError:
                 # Skip any malformed vote entries (in case there's a vote entry without the expected format)
                 continue
 
-        # Render the tally page with the vote counts for each topic
-        return render_template('tally.html', tally=tally)  # Pass the tally data to the template
+        # Render the tally page with the vote counts for all topics
+        return render_template('tally.html', tally=tally)
 
     except FileNotFoundError:
-        flash("Votes file or choices file not found.", "danger")
-        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard if fi
+        flash("Votes file not found.", "danger")
+        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard if the file is missing
 
 
 @app.route('/enter_voters', methods=['POST'])
@@ -325,27 +335,23 @@ def enter_voters():
         print(f"Error: {str(e)}")  # Log the error for debugging
         return redirect(url_for('admin_dashboard'))  # Redirect back to admin dashb
 
+
 @app.route('/update_topic', methods=['POST'])
 def update_topic():
-    if 'username' not in session or session['username'] != 'admin':
-        flash("Access restricted to admin only.", "danger")
-        return redirect(url_for('index'))  # Ensure only admin can access this route
+    global topic
+    if request.method == 'POST':
+        new_topic = request.form.get('new_topic')
 
-    new_topic = request.form.get('new_topic')
+        # Replace the existing topic with the new topic
+        topic = new_topic
 
-    if not new_topic:
-        flash("Topic cannot be empty.", "danger")
-        return redirect(url_for('admin_dashboard'))  # Redirect back to the dashboard if no topic is entered
+        # Save the updated topic to the file
+        with open('topics.txt', 'w') as file:
+            file.write(topic)
 
-    global current_topic
-    current_topic = new_topic  # Set the new current topic
-
-    # Save the new topic to the file
-    with open(topic_file, 'w') as file:
-        file.write(new_topic)
-
-    flash(f"The topic has been updated to '{new_topic}' successfully!", "success")
-    return redirect(url_for('admin_dashboard'))  # Redirect back to the admin dashboard
+        # Flash a success message
+        flash(f"Topic has been updated to '{new_topic}' successfully!", category='success')
+        return redirect(url_for('admin_dashboard'))
 def generate_users():
     if 'username' not in session or session['username'] != 'admin':
         flash("Access restricted to admin only.", "danger")
@@ -440,8 +446,6 @@ def generate_pdf(usernames, output_file='static/voters_list.pdf'):
 
     c.save()
 
-
-
 @app.route('/download_voters_pdf')
 def download_voters_pdf():
     try:
@@ -529,6 +533,11 @@ def delete_voter(username):
 
     return redirect(url_for('view_usernames'))  # Redirect back to the view_usernames page
 
+@app.route('/logout')
+def logout():
+    session.clear()  # Clear all session data
+    flash("You have been logged out.", "success")
+    return redirect(url_for('index'))  # Redirect to the login page
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, ssl_context=(ssl_cert, ssl_key))

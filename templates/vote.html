@@ -136,28 +136,27 @@
         {% endwith %}
 
         <form action="{{ url_for('submit_vote') }}" method="POST">
-            {% for name in names %}
+            {% for choice in choices %}
             <div class="form-group">
-                <input type="radio" id="{{ name }}" name="name" value="{{ name }}">
-                <label for="{{ name }}">{{ name }}</label>
+                <input type="radio" id="{{ choice }}" name="choice" value="{{ choice }}">
+                <label for="{{ choice }}">{{ choice }}</label>
             </div>
             {% endfor %}
             <button type="submit">Submit Vote</button>
         </form>
     </div>
-<script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/sw.js')
-            .then((registration) => {
-                console.log('Service Worker registered with scope:', registration.scope);
-            })
-            .catch((error) => {
-                console.error('Service Worker registration failed:', error);
-            });
-    }
-</script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then((registration) => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch((error) => {
+                    console.error('Service Worker registration failed:', error);
+                });
+        }
+    </script>
 </body>
 
 </html>
-
-
