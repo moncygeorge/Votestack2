@@ -1,3 +1,4 @@
+import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
 import random
 import os  # <-- Make sure this import is present
@@ -16,54 +17,65 @@ ssl_key = 'ssl/server.key'
 usernames_file = 'usernames.txt'
 choices_file = 'choices.txt'
 votes_file = 'votes.txt'
-topic_file = 'topics.txt'  # New file to store current topic
+role_file = 'roles.txt'  # New file to store current role
 
 @app.route('/login', methods=['POST'])
 def login():
+
     session.clear()
-    username = request.form.get('username')  # Get the username from the form
 
-    if not username:
-        flash("Please enter a username.", "danger")
-        return redirect(url_for('index'))  # If no username is provided, stay on login page
+    phone = request.form.get('username')  # still using same input field
 
-    # Allow admin to bypass username check
-    if username == 'admin':
-        session['username'] = username  # Store username in session
-        flash(f"Welcome, {username}!", "success")
-        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard if username is admin
+    if not phone:
+        flash("Please enter a phone number.", "danger")
+        return redirect(url_for('index'))
+
+    phone = ''.join(phone.split())  # remove spaces
+
+    # admin bypass stays the same (optional)
+    if phone == 'admin':
+        session['username'] = phone
+        return redirect(url_for('admin_dashboard'))
 
     try:
-        # Check if username exists in 'usernames.txt'
-        with open(usernames_file, 'r') as file:
-            usernames = file.read().splitlines()  # Read all usernames into a list
+        conn = sqlite3.connect('votestack2.db')
+        cursor = conn.cursor()
 
-        if username in usernames:
-            session['username'] = username  # Store username in session
-            flash(f"Welcome, {username}!", "success")
-            return redirect(url_for('vote'))  # Redirect to the voting page for regular users
+        cursor.execute(
+            "SELECT * FROM users WHERE phone_number=?",
+            (phone,)
+        )
+
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            session['username'] = phone
+            flash(f"Welcome {phone}", "success")
+            return redirect(url_for('vote'))
+
         else:
-            flash("Invalid username. Please try again.", "danger")
-            return redirect(url_for('index'))  # Redirect back to login page if username is invalid
+            flash("Phone number not authorized", "danger")
+            return redirect(url_for('index'))
 
-    except FileNotFoundError:
-        flash("Usernames file not found.", "danger")
-        return redirect(url_for('index'))  # Redirect back to login page if file is missing
+    except Exception as e:
+        flash(f"Database error: {e}", "danger")
+        return redirect(url_for('index'))
 
 
-# Load the current topic from the file when the app starts
-# Load topics from file
-def load_topic():
-    global topic
+# Load the current role from the file when the app starts
+# Load roles from file
+def load_role():
+    global role
     try:
-        with open('topics.txt', 'r') as file:
-            topic = file.read().strip()  # Read the single line and remove any surrounding whitespace
+        with open(role_file, 'r') as file:
+            role = file.read().strip()  # Read the single line and remove any surrounding whitespace
     except FileNotFoundError:
-        topic = None  # Handle the case where the file doesn't exist
-@app.route('/view_topic')
-def view_topic():
-    load_topic()  # Load the current topic
-    return render_template('view_topic.html', topic=topic)
+        role = None  # Handle the case where the file doesn't exist
+@app.route('/view_role')
+def view_role():
+    load_role()  # Load the current role
+    return render_template('view_role.html', role=role)
 
 @app.route('/', methods=['GET'])
 def index():
@@ -72,22 +84,22 @@ def index():
 @app.route('/vote')
 def vote():
     try:
-        # Read the topic from the topic file
-        with open('topics.txt', 'r') as file:
-            topic = file.read().strip()
+        # Read the role from the role file
+        with open(role_file, 'r') as file:
+            role = file.read().strip()
 
         # Read the choices from another file
         with open('choices.txt', 'r') as file:
             choices = [line.strip() for line in file.readlines()]
 
     except FileNotFoundError:
-        topic = None
+        role = None
         choices = []
 
-    if not topic or not choices:
-        return "No topic or choices available to vote on."
+    if not role or not choices:
+        return "No role or choices available to vote on."
 
-    return render_template('vote.html', topic=topic, choices=choices)
+    return render_template('vote.html', role=role, choices=choices)
 
 
 @app.route('/submit_vote', methods=['POST'])
@@ -95,12 +107,12 @@ def submit_vote():
     if 'username' not in session:
         return redirect(url_for('index'))  # Redirect to login if not logged in
 
-    # Load the current topic from the file (assuming the topic is stored in 'topics.txt')
+    # Load the current role from the file (assuming the role is stored in 'roles.txt')
     try:
-        with open('topics.txt', 'r') as file:
-            topic = file.read().strip()  # Read the topic from the file
+        with open(role_file, 'r') as file:
+            role = file.read().strip()  # Read the role from the file
     except FileNotFoundError:
-        flash("The topic file was not found.", "danger")
+        flash("The role file was not found.", "danger")
         return redirect(url_for('vote'))  # If the file isn't found, redirect to vote page
 
     choice = request.form.get('choice')  # Get the selected choice from the form
@@ -112,20 +124,20 @@ def submit_vote():
     username = session['username']
 
     try:
-        # Check if the user has already voted for the current topic by reading the votes file
+        # Check if the user has already voted for the current role by reading the votes file
         with open(votes_file, 'r') as file:
             votes = file.read().splitlines()
 
-        # If the user has already voted for the current topic, notify them
-        if any(vote.startswith(username + f":{topic}:") for vote in votes):
-            flash(f"You have already voted for the topic '{topic}', {username}. You can only vote once per topic.", "danger")
+        # If the user has already voted for the current role, notify them
+        if any(vote.startswith(username + f":{role}:") for vote in votes):
+            flash(f"You have already voted for the role '{role}', {username}. You can only vote once per role.", "danger")
             return redirect(url_for('vote'))  # Redirect back to voting page if they have already voted
 
-        # Save the vote with the username and current topic (e.g., 'username: topic: choice')
+        # Save the vote with the username and current role (e.g., 'username: role: choice')
         with open(votes_file, 'a') as file:
-            file.write(f"{username}:{topic}:{choice}\n")  # Store username, topic, and vote
+            file.write(f"{username}:{role}:{choice}\n")  # Store username, role, and vote
 
-        flash(f"Your vote for {choice} has been recorded for topic '{topic}'!", "success")
+        flash(f"Your vote for {choice} has been recorded for role '{role}'!", "success")
         return redirect(url_for('vote'))  # Stay on the voting page after voting
 
     except Exception as e:
@@ -133,10 +145,10 @@ def submit_vote():
         return redirect(url_for('vote'))  # Redirect back to voting page if any error occurs
 
 
-@app.route('/api/topic', methods=['GET'])
-def get_current_topic_api():
-    """API endpoint to get the current topic."""
-    return jsonify({"topic": topic}), 200
+@app.route('/api/current_role', methods=['GET'])
+def get_current_role_api():
+    """API endpoint to get the current role."""
+    return jsonify({"role": role}), 200
 
 @app.route('/api/submit_vote', methods=['POST'])
 def submit_vote_api():
@@ -153,19 +165,19 @@ def submit_vote_api():
         return jsonify({"error": "Please select a choice to vote for."}), 400
 
     try:
-        # Check if the user has already voted for the current topic by reading the votes file
+        # Check if the user has already voted for the current role by reading the votes file
         with open(votes_file, 'r') as file:
             votes = file.read().splitlines()
 
-        # If the user has already voted for the current topic, notify them
-        if any(vote.startswith(username + f":{topic}:") for vote in votes):
+        # If the user has already voted for the current role, notify them
+        if any(vote.startswith(username + f":{role}:") for vote in votes):
             return jsonify({"error": "You have already voted."}), 400
 
-        # Save the vote with the username and current topic (e.g., 'username: topic: name')
+        # Save the vote with the username and current role (e.g., 'username: role: name')
         with open(votes_file, 'a') as file:
-            file.write(f"{username}:{topic}:{choice}\n")  # Store username, topic, and vote
+            file.write(f"{username}:{role}:{choice}\n")  # Store username, role, and vote
 
-        return jsonify({"message": f"Your vote for {choice} has been recorded for topic '{topic}'!"}), 200
+        return jsonify({"message": f"Your vote for {choice} has been recorded for role '{role}'!"}), 200
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
@@ -194,7 +206,7 @@ def view_choices():
 @app.route('/update_choices', methods=['POST'])
 def update_choices():
     if request.method == 'POST':
-        # Get the choices from the form (no topic needed)
+        # Get the choices from the form (no role needed)
         new_choices = request.form.get('choices').splitlines()  # Get choices from the form and split by new lines
 
         # Save the new choices directly to the choices.txt file
@@ -213,12 +225,10 @@ def update_choices():
         return redirect(url_for('admin_dashboard'))
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
 def admin_dashboard():
-    load_topic()  # Load topics
-    # Pass 'topic' to the template
-    return render_template('admin_dashboard.html', topic=topic if topic else None)
     if 'username' not in session or session['username'] != 'admin':
         flash("Access restricted to admin only.", "danger")
         return redirect(url_for('index'))  # Redirect if the user is not admin
+
     if request.method == 'POST':
         # New feature to add voters
         num_voters = request.form.get('num_voters')
@@ -242,10 +252,8 @@ def admin_dashboard():
         except Exception as e:
             flash(f"An error occurred while updating usernames: {str(e)}", "danger")
 
-        # Load topics and set the current topic
-        load_topic()
-
-        return render_template('admin_dashboard.html', topics=topic if topic else None)
+    load_role()  # Load roles
+    return render_template('admin_dashboard.html', role=role if role else None)
 
 
 @app.route('/generate_tally', methods=['GET', 'POST'])
@@ -254,35 +262,32 @@ def generate_tally():
         flash("Access restricted to admin only.", "danger")
         return redirect(url_for('index'))  # Ensure only admin can access this route
 
+    load_role()
+
+    if not role:
+        flash("No role is currently set.", "warning")
+        return redirect(url_for('admin_dashboard'))
+
     try:
-        # Initialize a dictionary to hold the tally for each topic and its choices
         tally = {}
 
         # Read the votes from 'votes.txt'
         with open(votes_file, 'r') as file:
             votes = file.read().splitlines()
 
-        # Count the votes for each choice for each topic
+        # Count only votes for the current role
         for vote in votes:
             try:
-                username, topic, choice = vote.split(":")
-                if topic not in tally:
-                    # Initialize the topic if not already present
-                    tally[topic] = {}
-
-                # Initialize the choice count if not already present
-                if choice not in tally[topic]:
-                    tally[topic][choice] = 0
-
-                # Increment the vote count for this choice
-                tally[topic][choice] += 1
-
+                username, vote_role, choice = vote.split(":")
             except ValueError:
-                # Skip any malformed vote entries (in case there's a vote entry without the expected format)
                 continue
 
-        # Render the tally page with the vote counts for all topics
-        return render_template('tally.html', tally=tally)
+            if vote_role != role:
+                continue
+
+            tally[choice] = tally.get(choice, 0) + 1
+
+        return render_template('tally.html', role=role, tally=tally)
 
     except FileNotFoundError:
         flash("Votes file not found.", "danger")
@@ -336,21 +341,21 @@ def enter_voters():
         return redirect(url_for('admin_dashboard'))  # Redirect back to admin dashb
 
 
-@app.route('/update_topic', methods=['POST'])
-def update_topic():
-    global topic
+@app.route('/update_role', methods=['POST'])
+def update_role():
+    global role
     if request.method == 'POST':
-        new_topic = request.form.get('new_topic')
+        new_role = request.form.get('new_role')
 
-        # Replace the existing topic with the new topic
-        topic = new_topic
+        # Replace the existing role with the new role
+        role = new_role
 
-        # Save the updated topic to the file
-        with open('topics.txt', 'w') as file:
-            file.write(topic)
+        # Save the updated role to the file
+        with open(role_file, 'w') as file:
+            file.write(role)
 
         # Flash a success message
-        flash(f"Topic has been updated to '{new_topic}' successfully!", category='success')
+        flash(f"Role has been updated to '{new_role}' successfully!", category='success')
         return redirect(url_for('admin_dashboard'))
 def generate_users():
     if 'username' not in session or session['username'] != 'admin':
@@ -397,6 +402,16 @@ def generate_users():
         flash(f"An error occurred while updating usernames: {str(e)}", "danger")
         print(f"Error: {str(e)}")  # Log the error for debugging
         return redirect(url_for('admin_dashboard'))  # Redirect back to admin dashboard if an error occurs
+
+
+def create_word_document(usernames, output_file='static/voters_list.docx'):
+    doc = Document()
+    doc.add_heading('Voters List', level=1)
+
+    for username in usernames:
+        doc.add_paragraph(username)
+
+    doc.save(output_file)
 
 
 def generate_pdf(usernames, output_file='static/voters_list.pdf'):

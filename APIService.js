@@ -3,13 +3,13 @@ import axios from 'axios';
 const BASE_URL = 'https://yourdomain.com'; // Replace with your actual Flask backend URL
 
 const ApiService = {
-  // Fetch the current topic from the Flask backend
-  getCurrentTopic: async () => {
+  // Fetch the current role from the Flask backend
+  getCurrentRole: async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/api/current_topic`);
-      return response.data.topic;  // Assuming your Flask response contains the topic
+      const response = await axios.get(`${BASE_URL}/api/current_role`);
+      return response.data.role;  // Assuming your Flask response contains the role
     } catch (error) {
-      console.error('Error fetching current topic:', error);
+      console.error('Error fetching current role:', error);
       throw error;  // You can handle this error in the component
     }
   },

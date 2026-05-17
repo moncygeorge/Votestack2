@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vote for Topic</title>
+    <title>Vote for Role</title>
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -121,8 +121,8 @@
 <body>
 
     <div class="container">
-        <h1>Vote for Topic</h1>
-        <h2>Topic: {{ topic }}</h2> <!-- Updated from "Position" to "Topic" -->
+        <h1>Vote for Role</h1>
+        <h2>Role: {{ role }}</h2>
 
         <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}

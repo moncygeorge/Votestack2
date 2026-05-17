@@ -3,17 +3,17 @@ import { View, Text, Button, Alert, ScrollView } from 'react-native';
 import ApiService from './ApiService';  // Import your ApiService
 
 const VoteScreen = () => {
-  const [topic, setTopic] = useState('');
+  const [role, setRole] = useState('');
   const [choices, setChoices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch current topic and choices when the component is mounted
-    const fetchTopic = async () => {
+    // Fetch current role and choices when the component is mounted
+    const fetchRole = async () => {
       try {
-        // Fetch current topic from backend
-        const currentTopic = await ApiService.getCurrentTopic();
-        setTopic(currentTopic);
+        // Fetch current role from backend
+        const currentRole = await ApiService.getCurrentRole();
+        setRole(currentRole);
 
         // Fetch choices from the server (you can also fetch choices from a text file or another API endpoint)
         const response = await fetch('https://yourdomain.com/choices.txt');  // Adjust as needed
@@ -22,12 +22,12 @@ const VoteScreen = () => {
 
         setIsLoading(false);
       } catch (error) {
-        console.error('Error fetching topic or choices:', error);
+        console.error('Error fetching role or choices:', error);
         setIsLoading(false);
       }
     };
 
-    fetchTopic();
+    fetchRole();
   }, []);  // Empty dependency array means this will run once when the component mounts
 
   const handleVote = async (selectedName) => {
@@ -51,7 +51,7 @@ const VoteScreen = () => {
   return (
     <ScrollView>
       <View>
-        <Text>Current Topic: {topic}</Text>
+        <Text>Current Role: {role}</Text>
         {choices.map((choice, index) => (
           <Button
             key={index}

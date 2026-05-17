@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+ENV/
+
+# SQLite databases
+*.db
+
+# Flask static build artifacts
+static/*.pdf
+static/*.docx
+
+# Ignore certificates and keys
+ssl/*.key
+ssl/*.crt
+
+# VS Code
+.vscode/
+
+# Node modules
+node_modules/
+
+# Logs and temporary files
+*.log
+.DS_Store

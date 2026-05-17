@@ -70,7 +70,7 @@
             background-color: #f1f3f8;
         }
 
-        .topic-heading {
+        .role-heading {
             margin-top: 30px;
             font-size: 2rem;
             font-weight: 600;
@@ -111,12 +111,13 @@
         {% endif %}
         {% endwith %}
 
-        <!-- Loop through the topics in the tally dictionary -->
-        {% for topic, choices in tally.items() %}
-            <div class="topic-heading">
-                <h2>{{ topic }}</h2>
+        {% if role %}
+            <div class="role-heading">
+                <h2>Current Role: {{ role }}</h2>
             </div>
+        {% endif %}
 
+        {% if tally %}
             <table>
                 <thead>
                     <tr>
@@ -125,7 +126,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for choice, votes in choices.items() %}
+                    {% for choice, votes in tally.items() %}
                         <tr>
                             <td>{{ choice }}</td>
                             <td>{{ votes }}</td>
@@ -133,7 +134,9 @@
                     {% endfor %}
                 </tbody>
             </table>
-        {% endfor %}
+        {% else %}
+            <p>No votes found for the current role yet.</p>
+        {% endif %}
     </div>
 
     <!-- Bootstrap 5 JS and Popper.js -->

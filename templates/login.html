@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
+import sqlite3
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -102,8 +102,15 @@
         <!-- Login Form -->
         <form action="{{ url_for('login') }}" method="POST">
             <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required placeholder="Enter your username">
+                <label for="username">Phone Number</label>
+
+<input
+    type="text"
+    id="username"
+    name="username"
+    required
+    placeholder="Enter your phone number"
+>
             </div>
             <button type="submit">Login</button>
         </form>

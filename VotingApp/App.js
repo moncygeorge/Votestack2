@@ -3,18 +3,18 @@ import { View, Text, Button, TextInput, Alert } from 'react-native';
 import axios from 'axios';
 
 const App = () => {
-  const [topic, setTopic] = useState('');
+  const [role, setRole] = useState('');
   const [name, setName] = useState('');
 
-  // Fetch current topic from the Flask backend
+  // Fetch current role from the Flask backend
   useEffect(() => {
-    axios.get('https://yourdomain.com/api/current_topic')
+    axios.get('https://yourdomain.com/api/current_role')
       .then(response => {
-        setTopic(response.data.topic);
+        setRole(response.data.role);
       })
       .catch(error => {
         console.error(error);
-        Alert.alert("Error", "Unable to fetch topic.");
+        Alert.alert("Error", "Unable to fetch role.");
       });
   }, []);
 
@@ -36,7 +36,7 @@ const App = () => {
 
   return (
     <View style={{ padding: 20 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold' }}>Current Topic: {topic}</Text>
+      <Text style={{ fontSize: 24, fontWeight: 'bold' }}>Current Role: {role}</Text>
 
       <TextInput
         style={{ height: 40, borderColor: 'gray', borderWidth: 1, marginTop: 20 }}
