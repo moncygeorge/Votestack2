@@ -15,9 +15,6 @@ ssl_key = 'ssl/server.key'
 
 # Path to the file containing usernames
 usernames_file = 'usernames.txt'
-choices_file = 'choices.txt'
-votes_file = 'votes.txt'
-role_file = 'roles.txt'  # New file to store current role
 DB_FILE = 'votestack2.db'
 
 
@@ -90,19 +87,7 @@ def get_choices_for_role(role):
     conn = get_db_connection()
     rows = conn.execute("SELECT choice FROM choices WHERE role=? ORDER BY id", (role,)).fetchall()
     conn.close()
-
-    if rows:
-        return [row['choice'] for row in rows]
-
-    if os.path.exists(choices_file):
-        with open(choices_file, 'r', encoding='utf-8') as file:
-            choices = [line.strip() for line in file if line.strip()]
-
-        if choices:
-            save_choices_for_role(role, choices)
-            return choices
-
-    return []
+    return [row['choice'] for row in rows]
 
 
 def save_choices_for_role(role, choices):
@@ -136,49 +121,6 @@ def record_vote(username, role, choice):
     conn.close()
 
 
-def migrate_files_to_db():
-    conn = get_db_connection()
-    current_role_row = conn.execute("SELECT value FROM settings WHERE key='current_role'").fetchone()
-
-    if current_role_row:
-        current_role = current_role_row['value']
-    else:
-        current_role = None
-
-    if not current_role and os.path.exists(role_file):
-        with open(role_file, 'r', encoding='utf-8') as file:
-            role_value = file.read().strip()
-            if role_value:
-                set_current_role(role_value)
-                current_role = role_value
-
-    if current_role and os.path.exists(choices_file):
-        with open(choices_file, 'r', encoding='utf-8') as file:
-            choices = [line.strip() for line in file if line.strip()]
-            if choices:
-                save_choices_for_role(current_role, choices)
-
-    if os.path.exists(votes_file):
-        with open(votes_file, 'r', encoding='utf-8') as file:
-            for line in file:
-                parts = line.strip().split(":")
-                if len(parts) != 3:
-                    continue
-                username, vote_role, choice = parts
-                try:
-                    conn.execute(
-                        "INSERT OR IGNORE INTO votes (username, role, choice) VALUES (?, ?, ?)",
-                        (username, vote_role, choice)
-                    )
-                except sqlite3.DatabaseError:
-                    continue
-
-    conn.commit()
-    conn.close()
-
-
-init_db()
-migrate_files_to_db()
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -225,13 +167,7 @@ def login():
 
 
 def load_role():
-    role = get_current_role()
-    if not role and os.path.exists(role_file):
-        with open(role_file, 'r', encoding='utf-8') as file:
-            role = file.read().strip()
-            if role:
-                set_current_role(role)
-    return role
+    return get_current_role()
 
 @app.route('/view_role')
 def view_role():
@@ -462,9 +398,6 @@ def update_role():
             return redirect(url_for('admin_dashboard'))
 
         set_current_role(new_role)
-
-        with open(role_file, 'w', encoding='utf-8') as file:
-            file.write(new_role)
 
         flash(f"Role has been updated to '{new_role}' successfully!", category='success')
         return redirect(url_for('admin_dashboard'))
