@@ -18,6 +18,167 @@ usernames_file = 'usernames.txt'
 choices_file = 'choices.txt'
 votes_file = 'votes.txt'
 role_file = 'roles.txt'  # New file to store current role
+DB_FILE = 'votestack2.db'
+
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        phone_number TEXT UNIQUE NOT NULL
+    )
+    ''')
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    )
+    ''')
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS choices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        role TEXT NOT NULL,
+        choice TEXT NOT NULL,
+        UNIQUE(role, choice)
+    )
+    ''')
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS votes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        role TEXT NOT NULL,
+        choice TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(username, role)
+    )
+    ''')
+
+    conn.commit()
+    conn.close()
+
+
+def get_current_role():
+    conn = get_db_connection()
+    row = conn.execute("SELECT value FROM settings WHERE key='current_role'").fetchone()
+    conn.close()
+    return row['value'] if row else None
+
+
+def set_current_role(role):
+    conn = get_db_connection()
+    conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", ('current_role', role))
+    conn.commit()
+    conn.close()
+
+
+def get_choices_for_role(role):
+    if not role:
+        return []
+
+    conn = get_db_connection()
+    rows = conn.execute("SELECT choice FROM choices WHERE role=? ORDER BY id", (role,)).fetchall()
+    conn.close()
+
+    if rows:
+        return [row['choice'] for row in rows]
+
+    if os.path.exists(choices_file):
+        with open(choices_file, 'r', encoding='utf-8') as file:
+            choices = [line.strip() for line in file if line.strip()]
+
+        if choices:
+            save_choices_for_role(role, choices)
+            return choices
+
+    return []
+
+
+def save_choices_for_role(role, choices):
+    conn = get_db_connection()
+    conn.execute("DELETE FROM choices WHERE role=?", (role,))
+    conn.executemany(
+        "INSERT OR IGNORE INTO choices (role, choice) VALUES (?, ?)",
+        [(role, choice) for choice in choices if choice.strip()]
+    )
+    conn.commit()
+    conn.close()
+
+
+def has_user_voted(username, role):
+    conn = get_db_connection()
+    row = conn.execute(
+        "SELECT 1 FROM votes WHERE username=? AND role=?",
+        (username, role)
+    ).fetchone()
+    conn.close()
+    return row is not None
+
+
+def record_vote(username, role, choice):
+    conn = get_db_connection()
+    conn.execute(
+        "INSERT INTO votes (username, role, choice) VALUES (?, ?, ?)",
+        (username, role, choice)
+    )
+    conn.commit()
+    conn.close()
+
+
+def migrate_files_to_db():
+    conn = get_db_connection()
+    current_role_row = conn.execute("SELECT value FROM settings WHERE key='current_role'").fetchone()
+
+    if current_role_row:
+        current_role = current_role_row['value']
+    else:
+        current_role = None
+
+    if not current_role and os.path.exists(role_file):
+        with open(role_file, 'r', encoding='utf-8') as file:
+            role_value = file.read().strip()
+            if role_value:
+                set_current_role(role_value)
+                current_role = role_value
+
+    if current_role and os.path.exists(choices_file):
+        with open(choices_file, 'r', encoding='utf-8') as file:
+            choices = [line.strip() for line in file if line.strip()]
+            if choices:
+                save_choices_for_role(current_role, choices)
+
+    if os.path.exists(votes_file):
+        with open(votes_file, 'r', encoding='utf-8') as file:
+            for line in file:
+                parts = line.strip().split(":")
+                if len(parts) != 3:
+                    continue
+                username, vote_role, choice = parts
+                try:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO votes (username, role, choice) VALUES (?, ?, ?)",
+                        (username, vote_role, choice)
+                    )
+                except sqlite3.DatabaseError:
+                    continue
+
+    conn.commit()
+    conn.close()
+
+
+init_db()
+migrate_files_to_db()
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -63,18 +224,18 @@ def login():
         return redirect(url_for('index'))
 
 
-# Load the current role from the file when the app starts
-# Load roles from file
 def load_role():
-    global role
-    try:
-        with open(role_file, 'r') as file:
-            role = file.read().strip()  # Read the single line and remove any surrounding whitespace
-    except FileNotFoundError:
-        role = None  # Handle the case where the file doesn't exist
+    role = get_current_role()
+    if not role and os.path.exists(role_file):
+        with open(role_file, 'r', encoding='utf-8') as file:
+            role = file.read().strip()
+            if role:
+                set_current_role(role)
+    return role
+
 @app.route('/view_role')
 def view_role():
-    load_role()  # Load the current role
+    role = load_role()
     return render_template('view_role.html', role=role)
 
 @app.route('/', methods=['GET'])
@@ -83,18 +244,8 @@ def index():
 
 @app.route('/vote')
 def vote():
-    try:
-        # Read the role from the role file
-        with open(role_file, 'r') as file:
-            role = file.read().strip()
-
-        # Read the choices from another file
-        with open('choices.txt', 'r') as file:
-            choices = [line.strip() for line in file.readlines()]
-
-    except FileNotFoundError:
-        role = None
-        choices = []
+    role = load_role()
+    choices = get_choices_for_role(role)
 
     if not role or not choices:
         return "No role or choices available to vote on."
@@ -107,47 +258,36 @@ def submit_vote():
     if 'username' not in session:
         return redirect(url_for('index'))  # Redirect to login if not logged in
 
-    # Load the current role from the file (assuming the role is stored in 'roles.txt')
-    try:
-        with open(role_file, 'r') as file:
-            role = file.read().strip()  # Read the role from the file
-    except FileNotFoundError:
-        flash("The role file was not found.", "danger")
-        return redirect(url_for('vote'))  # If the file isn't found, redirect to vote page
+    role = load_role()
+    if not role:
+        flash("No voting role is configured.", "danger")
+        return redirect(url_for('vote'))
 
     choice = request.form.get('choice')  # Get the selected choice from the form
-
     if not choice:
         flash("Please select a choice to vote for.", "danger")
-        return redirect(url_for('vote'))  # Redirect back to the voting page if no choice is selected
+        return redirect(url_for('vote'))
 
     username = session['username']
 
     try:
-        # Check if the user has already voted for the current role by reading the votes file
-        with open(votes_file, 'r') as file:
-            votes = file.read().splitlines()
-
-        # If the user has already voted for the current role, notify them
-        if any(vote.startswith(username + f":{role}:") for vote in votes):
+        if has_user_voted(username, role):
             flash(f"You have already voted for the role '{role}', {username}. You can only vote once per role.", "danger")
-            return redirect(url_for('vote'))  # Redirect back to voting page if they have already voted
+            return redirect(url_for('vote'))
 
-        # Save the vote with the username and current role (e.g., 'username: role: choice')
-        with open(votes_file, 'a') as file:
-            file.write(f"{username}:{role}:{choice}\n")  # Store username, role, and vote
-
+        record_vote(username, role, choice)
         flash(f"Your vote for {choice} has been recorded for role '{role}'!", "success")
-        return redirect(url_for('vote'))  # Stay on the voting page after voting
+        return redirect(url_for('vote'))
 
     except Exception as e:
         flash(f"An error occurred: {str(e)}", "danger")
-        return redirect(url_for('vote'))  # Redirect back to voting page if any error occurs
+        return redirect(url_for('vote'))
 
 
 @app.route('/api/current_role', methods=['GET'])
 def get_current_role_api():
     """API endpoint to get the current role."""
+    role = load_role()
     return jsonify({"role": role}), 200
 
 @app.route('/api/submit_vote', methods=['POST'])
@@ -160,23 +300,19 @@ def submit_vote_api():
 
     username = session['username']
     choice = data.get('choice')
+    role = load_role()
+
+    if not role:
+        return jsonify({"error": "No voting role is configured."}), 400
 
     if not choice:
         return jsonify({"error": "Please select a choice to vote for."}), 400
 
     try:
-        # Check if the user has already voted for the current role by reading the votes file
-        with open(votes_file, 'r') as file:
-            votes = file.read().splitlines()
-
-        # If the user has already voted for the current role, notify them
-        if any(vote.startswith(username + f":{role}:") for vote in votes):
+        if has_user_voted(username, role):
             return jsonify({"error": "You have already voted."}), 400
 
-        # Save the vote with the username and current role (e.g., 'username: role: name')
-        with open(votes_file, 'a') as file:
-            file.write(f"{username}:{role}:{choice}\n")  # Store username, role, and vote
-
+        record_vote(username, role, choice)
         return jsonify({"message": f"Your vote for {choice} has been recorded for role '{role}'!"}), 200
 
     except Exception as e:
@@ -186,43 +322,34 @@ def submit_vote_api():
 def view_choices():
     if 'username' not in session or session['username'] != 'admin':
         flash("Access restricted to admin only.", "danger")
-        return redirect(url_for('index'))  # Ensure only admin can access this route
+        return redirect(url_for('index'))
 
-    try:
-        # Read the choices from the 'choices.txt' file
-        with open(choices_file, 'r') as file:
-            choices = file.read().splitlines()
+    role = load_role()
+    choices = get_choices_for_role(role)
 
-        if not choices:
-            flash("No choices available.", "warning")  # Show a message if no choices are available
+    if not choices:
+        flash("No choices available.", "warning")
 
-        return render_template('view_choices.html', choices=choices)  # Pass choices to template
-
-    except FileNotFoundError:
-        flash("Choices file not found.", "danger")
-        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard if file is missing
+    return render_template('view_choices.html', choices=choices)
 
 # Route to update the choices (allow admin to input new choices)
 @app.route('/update_choices', methods=['POST'])
 def update_choices():
     if request.method == 'POST':
-        # Get the choices from the form (no role needed)
-        new_choices = request.form.get('choices').splitlines()  # Get choices from the form and split by new lines
+        role = load_role()
+        if not role:
+            flash("No current role configured.", category='danger')
+            return redirect(url_for('admin_dashboard'))
 
-        # Save the new choices directly to the choices.txt file
+        new_choices = request.form.get('choices').splitlines()
         try:
-            with open('choices.txt', 'w') as file:
-                # Write the new choices to the file, each on a new line
-                for choice in new_choices:
-                    file.write(f"{choice}\n")
-
-            # Flash a success message
+            save_choices_for_role(role, new_choices)
             flash("Choices have been updated successfully!", category='success')
         except Exception as e:
-            # In case of any error while writing to the file
             flash(f"An error occurred while updating choices: {e}", category='danger')
 
         return redirect(url_for('admin_dashboard'))
+
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
 def admin_dashboard():
     if 'username' not in session or session['username'] != 'admin':
@@ -252,46 +379,30 @@ def admin_dashboard():
         except Exception as e:
             flash(f"An error occurred while updating usernames: {str(e)}", "danger")
 
-    load_role()  # Load roles
-    return render_template('admin_dashboard.html', role=role if role else None)
+    role = load_role()
+    return render_template('admin_dashboard.html', role=role)
 
 
 @app.route('/generate_tally', methods=['GET', 'POST'])
 def generate_tally():
     if 'username' not in session or session['username'] != 'admin':
         flash("Access restricted to admin only.", "danger")
-        return redirect(url_for('index'))  # Ensure only admin can access this route
+        return redirect(url_for('index'))
 
-    load_role()
-
+    role = load_role()
     if not role:
         flash("No role is currently set.", "warning")
         return redirect(url_for('admin_dashboard'))
 
-    try:
-        tally = {}
+    conn = get_db_connection()
+    rows = conn.execute(
+        "SELECT choice, COUNT(*) AS count FROM votes WHERE role=? GROUP BY choice",
+        (role,)
+    ).fetchall()
+    conn.close()
 
-        # Read the votes from 'votes.txt'
-        with open(votes_file, 'r') as file:
-            votes = file.read().splitlines()
-
-        # Count only votes for the current role
-        for vote in votes:
-            try:
-                username, vote_role, choice = vote.split(":")
-            except ValueError:
-                continue
-
-            if vote_role != role:
-                continue
-
-            tally[choice] = tally.get(choice, 0) + 1
-
-        return render_template('tally.html', role=role, tally=tally)
-
-    except FileNotFoundError:
-        flash("Votes file not found.", "danger")
-        return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard if the file is missing
+    tally = {row['choice']: row['count'] for row in rows}
+    return render_template('tally.html', role=role, tally=tally)
 
 
 @app.route('/enter_voters', methods=['POST'])
@@ -343,18 +454,18 @@ def enter_voters():
 
 @app.route('/update_role', methods=['POST'])
 def update_role():
-    global role
     if request.method == 'POST':
         new_role = request.form.get('new_role')
 
-        # Replace the existing role with the new role
-        role = new_role
+        if not new_role:
+            flash("Please enter a valid role.", category='danger')
+            return redirect(url_for('admin_dashboard'))
 
-        # Save the updated role to the file
-        with open(role_file, 'w') as file:
-            file.write(role)
+        set_current_role(new_role)
 
-        # Flash a success message
+        with open(role_file, 'w', encoding='utf-8') as file:
+            file.write(new_role)
+
         flash(f"Role has been updated to '{new_role}' successfully!", category='success')
         return redirect(url_for('admin_dashboard'))
 def generate_users():
