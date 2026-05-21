@@ -7,7 +7,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Necessary for flash messages to work
+app.secret_key = os.environ.get('SECRET_KEY', 'fallback-dev-key')
 
 # Path to the ssl certificate and key
 ssl_cert = 'ssl/server.crt'
@@ -599,4 +599,4 @@ def logout():
     return redirect(url_for('index'))  # Redirect to the login page
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, ssl_context=(ssl_cert, ssl_key))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
